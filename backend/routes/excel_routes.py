@@ -4,9 +4,12 @@ from config import db
 from models import Client, Transaction
 import pandas as pd
 import io
+import os
 import xlsxwriter
+import tempfile
 from datetime import datetime
 
+#Daily Volumes and Values
 @excel_routes_bp.route('/excel/getVolume_Value/<string:group_name>', methods=['GET'])
 def export_transactions_to_excel(group_name):
     try:
@@ -58,6 +61,7 @@ def export_transactions_to_excel(group_name):
     except Exception as e:
         return jsonify({'error': f'Failed to export transactions to Excel: {str(e)}'}), 500
 
+# Summary 
 @excel_routes_bp.route('/excel/getDailySummary/<string:group_name>', methods=['GET'])
 def calculate_daily_summary(group_name):
     try:
@@ -115,3 +119,48 @@ def calculate_daily_summary(group_name):
         return send_file(excel_filename, as_attachment=True, download_name=excel_filename)
     except Exception as e:
         return jsonify({'error': f'Failed to calculate daily summary: {str(e)}'}), 500
+
+#Cumulative trans 
+@excel_routes_bp.route('/excel/cumulative/<string:group_name>', methods=['GET'])
+def calculate_cumulative_transactions(group_name):
+    try:
+        # Query group clients
+        clients = Client.query.filter_by(group=group_name).all()
+        if not clients:
+            return jsonify({'error': 'No clients found for this group'}), 404
+
+        # Extract all terminal IDs and initialize summary dictionary
+        terminal_ids = [client.terminal_id for client in clients]
+        summary = {client.terminal_id: {'merchant_name': client.merchant_name, 'total_value': 0, 'total_volume': 0} for client in clients}
+
+        # Query all transactions for the group
+        transactions = Transaction.query.filter(Transaction.terminal_id.in_(terminal_ids)).all()
+
+        # Populate summary dictionary with transaction data
+        for transaction in transactions:
+            summary[transaction.terminal_id]['total_value'] += transaction.value
+            summary[transaction.terminal_id]['total_volume'] += transaction.volume
+
+        # Convert summary dictionary to DataFrame
+        summary_data = [
+            {
+                'Merchant_name': data['merchant_name'],
+                'TerminalID': terminal_id,
+                'Total Value': data['total_value'],
+                'Total Volume': data['total_volume']
+            }
+            for terminal_id, data in summary.items()
+        ]
+        df_summary = pd.DataFrame(summary_data)
+
+         # Prepare Excel writer
+        excel_filename = f'Cumulative_{group_name}.xlsx'
+        with pd.ExcelWriter(excel_filename, engine='xlsxwriter') as writer:
+            df_summary.to_excel(writer, sheet_name='summary', index=False)
+
+        # Send the generated Excel file as a response with appropriate headers
+        return send_file(excel_filename, as_attachment=True, download_name=excel_filename)
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to calculate cumulative transactions: {str(e)}'}), 500
+
