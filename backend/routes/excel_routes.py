@@ -94,7 +94,7 @@ def calculate_daily_summary(group_name):
                 }
 
             # Determine currency based on terminal ID prefix
-            if transaction.terminal_id.startswith(('SBM', 'ZPZ')):
+            if transaction.terminal_id.startswith(('SBM', 'ZPZ', 'C')):
                 daily_summary[date_str]['Value in ZiG'] += transaction.value
                 daily_summary[date_str]['Volume in ZiG'] += transaction.volume
             elif transaction.terminal_id.startswith(('FCM', 'FCZP')):
@@ -164,3 +164,69 @@ def calculate_cumulative_transactions(group_name):
     except Exception as e:
         return jsonify({'error': f'Failed to calculate cumulative transactions: {str(e)}'}), 500
 
+# Cumulative by branch
+@excel_routes_bp.route('/excel/cumulative_by_branch/<string:group_name>', methods=['GET'])
+def calculate_cumulative_transactions_by_branch(group_name):
+    try:
+        # Query group clients
+        clients = Client.query.filter_by(group=group_name).all()
+        if not clients:
+            return jsonify({'error': 'No clients found for this group'}), 404
+
+        # Extract terminal IDs and initialize summary dictionary
+        terminal_ids = [client.terminal_id for client in clients]
+        branch_summary = {}
+
+        # Initialize branch summary with zero values
+        for client in clients:
+            branch = client.branch
+            if branch not in branch_summary:
+                branch_summary[branch] = {
+                    'num_terminals': 0,
+                    'value_in_ZiG': 0,
+                    'volume_in_ZiG': 0,
+                    'value_in_USD': 0,
+                    'volume_in_USD': 0
+                }
+            branch_summary[branch]['num_terminals'] += 1
+
+        # Query all transactions for the group
+        transactions = Transaction.query.filter(Transaction.terminal_id.in_(terminal_ids)).all()
+
+        # Populate summary dictionary with transaction data
+        for transaction in transactions:
+            for client in clients:
+                if transaction.terminal_id == client.terminal_id:
+                    branch = client.branch
+                    if transaction.terminal_id.startswith(('SBM', 'ZPZ')):
+                        branch_summary[branch]['value_in_ZiG'] += transaction.value
+                        branch_summary[branch]['volume_in_ZiG'] += transaction.volume
+                    elif transaction.terminal_id.startswith(('FCM', 'FCZP')):
+                        branch_summary[branch]['value_in_USD'] += transaction.value
+                        branch_summary[branch]['volume_in_USD'] += transaction.volume
+                    break
+
+        # Convert branch summary to DataFrame
+        summary_data = [
+            {
+                'num of terminal IDs': data['num_terminals'],
+                'Branch': branch,
+                'Value in ZiG': data['value_in_ZiG'],
+                'Volume in ZiG': data['volume_in_ZiG'],
+                'Value in USD': data['value_in_USD'],
+                'Volume in USD': data['volume_in_USD']
+            }
+            for branch, data in branch_summary.items()
+        ]
+        df_summary = pd.DataFrame(summary_data)
+
+        # Use a temporary directory to save the file
+        file_name =  f'Cumulative_by_branch_{group_name}.xlsx'
+        with pd.ExcelWriter(file_name, engine='xlsxwriter') as writer:
+            df_summary.to_excel(writer, sheet_name='summary', index=False)
+
+            # Send the generated Excel file as a response with appropriate headers
+        return send_file(file_name, as_attachment=True, download_name=file_name)
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to calculate cumulative transactions by branch: {str(e)}'}), 500

@@ -9,6 +9,7 @@ class Client(db.Model):
     merchant_name = db.Column(db.String(80), nullable=False)
     city = db.Column(db.String(50), nullable=False)
     group = db.Column(db.String(50), nullable=False)
+    branch = db.Column(db.String(50), nullable=False)
     
     def to_dict(self):
         return {
@@ -18,7 +19,8 @@ class Client(db.Model):
             'model': self.model,
             'merchant_name': self.merchant_name,
             'city': self.city,
-            'group': self.group
+            'group': self.group,
+            'branch': self.branch
         }
 
 class Transaction(db.Model):
