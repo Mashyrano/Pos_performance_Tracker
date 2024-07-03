@@ -94,7 +94,7 @@ def calculate_daily_summary(group_name):
                 }
 
             # Determine currency based on terminal ID prefix
-            if transaction.terminal_id.startswith(('SBM', 'ZPZ')):
+            if transaction.terminal_id.startswith(('SBM', 'ZPZ', 'C')):
                 daily_summary[date_str]['Value in ZiG'] += transaction.value
                 daily_summary[date_str]['Volume in ZiG'] += transaction.volume
             elif transaction.terminal_id.startswith(('FCM', 'FCZP')):

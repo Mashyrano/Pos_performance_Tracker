@@ -127,3 +127,26 @@ def get_group_transactions(group_name):
 
     except Exception as e:
         return jsonify({'error': f'Failed to fetch transactions: {str(e)}'}), 500
+
+# delete all transactions 
+@transaction_bp.route('/transactions/delete/all', methods=['DELETE'])
+def delete_all_transactions():
+    try:
+        # Query transactions 
+        transactions = Transaction.query.all()
+
+        if not transactions:
+            return jsonify({'error': 'No transactions found'}), 404
+
+        # Delete transactions associated with the extracted terminal IDs
+        for transaction in transactions:
+            db.session.delete(transaction)
+
+        db.session.commit()
+        return jsonify({'message': f'All transactions deleted successfully!'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete transactions: {str(e)}'}), 500
+
+

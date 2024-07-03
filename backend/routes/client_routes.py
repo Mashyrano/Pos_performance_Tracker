@@ -2,21 +2,30 @@ from flask import request, jsonify
 from routes import client_bp
 from config import db
 from models import Client
-from routes.transaction_routes import delete_transactions_by_group
+from routes.transaction_routes import delete_transactions_by_group, delete_all_transactions
 import pandas as pd
 import io
 
 #add a client
 @client_bp.route('/clients', methods=['POST'])
 def add_client():
+
     data = request.json
+
+    # Check if terminal_id already exists in the database
+    existing_client = Client.query.filter_by(terminal_id=data['terminal_id']).first()
+    if existing_client:
+        error_messages.append(f"Client with terminal ID '{data['terminal_id']}' already exists, skipped.")
+        return jsonify({'message': error_messages}), 500
+
     new_client = Client(
         terminal_id=data['terminal_id'],
         physical_tid=data['physical_tid'],
         model=data['model'],
         merchant_name=data['merchant_name'],
         city=data['city'],
-        group=data['group']
+        group=data['group'],
+        branch=data['branch']
     )
     db.session.add(new_client)
     db.session.commit()
@@ -52,6 +61,7 @@ def update_client(id):
     client.merchant_name = data['merchant_name']
     client.city = data['city']
     client.group = data['group']
+    client.branch = data['branch']
     db.session.commit()
     return jsonify(client.to_dict()), 200
 
@@ -96,7 +106,8 @@ def upload_clients():
                 model=row['Model'],
                 merchant_name=row['Merchant Name'],
                 city=row['City'],
-                group=row['Group']
+                group=row['Group'],
+                branch=row['branch']
             )
             db.session.add(new_client)
             success_count += 1
@@ -128,3 +139,17 @@ def delete_group(group_name):
         db.session.delete(client)
     db.session.commit()
     return jsonify({'message': f'All clients in group {group_name} deleted successfully!'}), 200
+
+@client_bp.route('/clients/delete/all', methods=['DELETE'])
+def delete_all():
+    # delete the transaction associated with group first
+    delete_all_transactions()
+    # delete from clients
+    clients = Client.query.all()
+    if not clients:
+        return jsonify({'error': 'No Client found'}), 404
+    
+    for client in clients:
+        db.session.delete(client)
+    db.session.commit()
+    return jsonify({'message': f'All clients deleted successfully!'}), 200
