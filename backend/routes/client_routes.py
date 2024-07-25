@@ -154,3 +154,19 @@ def delete_all():
         db.session.delete(client)
     db.session.commit()
     return jsonify({'message': f'All clients deleted successfully!'}), 200
+
+# get clients by group
+@client_bp.route('/clients/get_group/<string:group_name>', methods=['GET'])
+def get_clients_of_group(group_name):
+    clients = Client.query.filter_by(group=group_name).all()
+    if not clients:
+        return jsonify([]), 200  # Return an empty list if no clients are found
+    return jsonify([client.to_dict() for client in clients]), 200
+
+# Get a single client by ID
+@client_bp.route('/clients/<int:id>', methods=['GET'])
+def get_client(id):
+    client = Client.query.get(id)
+    if not client:
+        return jsonify({'error': 'Client not found'}), 404
+    return jsonify(client.to_dict()), 200

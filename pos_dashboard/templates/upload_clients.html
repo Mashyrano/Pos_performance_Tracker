@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Upload Clients from Excel</h1>
+<form id="upload-form" method="POST" action="{{ url_for('upload_clients') }}" enctype="multipart/form-data">
+    <label for="file">Upload Clients Excel File:</label>
+    <input type="file" id="file" name="file" accept=".xlsx" required>
+    <input type="submit" value="Upload">
+</form>
+{% endblock %}

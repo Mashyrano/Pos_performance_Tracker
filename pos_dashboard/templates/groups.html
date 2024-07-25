@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Groups</h1>
+<ul>
+    {% for group in groups %}
+        <li>
+            {{ group }}
+            <form method="POST" action="{{ url_for('delete_group', group_name=group) }}" style="display:inline;">
+                <input type="submit" value="Delete">
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -150,3 +150,35 @@ def delete_all_transactions():
         return jsonify({'error': f'Failed to delete transactions: {str(e)}'}), 500
 
 
+# Get transactions by group and date range
+@transaction_bp.route('/transactions/group/<string:group_name>', methods=['GET'])
+def get_transactions_by_group_and_date(group_name):
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    if not start_date or not end_date:
+        return jsonify({'error': 'Start date and end date are required'}), 400
+
+    try:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+    clients = Client.query.filter_by(group=group_name).all()
+    terminal_ids = [client.terminal_id for client in clients]
+
+    transactions = Transaction.query.filter(
+        Transaction.terminal_id.in_(terminal_ids),
+        Transaction.date.between(start_date, end_date)
+    ).all()
+
+    total_volume = sum(transaction.volume for transaction in transactions)
+    total_value = sum(transaction.value for transaction in transactions)
+
+    return jsonify({
+        'total_volume': total_volume,
+        'total_value': total_value
+    }), 200
+
+

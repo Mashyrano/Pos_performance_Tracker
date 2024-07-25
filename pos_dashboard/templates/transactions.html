@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Transactions</h1>
+{% if message %}
+<script>
+    alert("{{ message }}");
+</script>
+{% endif %}
+<form method="POST">
+    <label for="group">Filter by Group:</label>
+    <select id="group" name="group" required>
+        <option value="">Select Group</option>
+        {% for grp in groups %}
+            <option value="{{ grp }}" {% if group == grp %}selected{% endif %}>{{ grp }}</option>
+        {% endfor %}
+    </select><br>
+    <label for="start_date">Start Date:</label>
+    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" required><br>
+    <label for="end_date">End Date:</label>
+    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" required><br>
+    <input type="submit" value="Filter">
+</form>
+{% if group and start_date and end_date %}
+<h2>Results for Group: {{ group }} from {{ start_date }} to {{ end_date }}</h2>
+<p>Total Volume: {{ total_volume }}</p>
+<p>Total Value: {{ total_value }}</p>
+{% endif %}
+
+<h2>Upload Transactions</h2>
+<form id="upload-form" method="POST" action="{{ url_for('transactions') }}" enctype="multipart/form-data">
+    <label for="file">Upload Transactions Excel File:</label>
+    <input type="file" id="file" name="file" accept=".xlsx" required>
+    <input type="submit" value="Upload">
+</form>
+{% endblock %}

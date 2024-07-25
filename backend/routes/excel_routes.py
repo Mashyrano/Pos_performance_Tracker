@@ -230,3 +230,4 @@ def calculate_cumulative_transactions_by_branch(group_name):
 
     except Exception as e:
         return jsonify({'error': f'Failed to calculate cumulative transactions by branch: {str(e)}'}), 500
+
