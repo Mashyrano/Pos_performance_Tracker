@@ -32,4 +32,43 @@
     <input type="file" id="file" name="file" accept=".xlsx" required>
     <input type="submit" value="Upload">
 </form>
+
+<h2>Delete Transactions</h2>
+<form id="delete-form" method="POST" onsubmit="deleteTransactions(event)">
+    <label for="delete_start_date">Start Date:</label>
+    <input type="date" id="delete_start_date" name="delete_start_date" required><br>
+    <label for="delete_end_date">End Date:</label>
+    <input type="date" id="delete_end_date" name="delete_end_date" required><br>
+    <button type="submit">Delete Transactions</button>
+</form>
+
+<script>
+const BACKEND_URL = 'http://localhost:5000';
+
+function deleteTransactions(event) {
+    event.preventDefault();
+    const startDate = document.getElementById('delete_start_date').value;
+    const endDate = document.getElementById('delete_end_date').value;
+
+    if (startDate && endDate) {
+        fetch(`${BACKEND_URL}/transactions/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ start_date: startDate, end_date: endDate })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || data.error);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete transactions.');
+        });
+    } else {
+        alert('Please select a start date and end date.');
+    }
+}
+</script>
 {% endblock %}

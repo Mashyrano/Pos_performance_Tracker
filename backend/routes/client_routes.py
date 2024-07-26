@@ -169,4 +169,4 @@ def get_client(id):
     client = Client.query.get(id)
     if not client:
         return jsonify({'error': 'Client not found'}), 404
-    return jsonify(client.to_dict()), 200
+    return jsonify(client.to_dict()), 200   

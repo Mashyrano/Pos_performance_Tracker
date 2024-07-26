@@ -1,4 +1,61 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Reports</h1>
+<h1>Generate Reports</h1>
+<form id="report-form" method="GET" action="#">
+    <label for="group">Select Group:</label>
+    <select id="group" name="group" required>
+        <option value="">Select Group</option>
+        {% for grp in groups %}
+            <option value="{{ grp }}">{{ grp }}</option>
+        {% endfor %}
+    </select><br>
+    <label for="start_date">Start Date:</label>
+    <input type="date" id="start_date" name="start_date" required><br>
+    <label for="end_date">End Date:</label>
+    <input type="date" id="end_date" name="end_date" required><br>
+    <button type="button" onclick="generateReport('getVolume_Value')">Download Daily Volumes and Values</button>
+    <button type="button" onclick="generateReport('getDailySummary')">Download Daily Summary</button>
+    <button type="button" onclick="generateReport('cumulative')">Download Cumulative Transactions</button>
+    <button type="button" onclick="generateReport('cumulative_by_branch')">Download Cumulative Transactions by Branch</button>
+</form>
+
+<script>
+const BACKEND_URL = 'http://localhost:5000';
+
+function generateReport(reportType) {
+    const group = document.getElementById('group').value;
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+
+    if (group && startDate && endDate) {
+        const url = `${BACKEND_URL}/excel/${reportType}/${group}?start_date=${startDate}&end_date=${endDate}`;
+
+        fetch(url, {
+            method: 'GET'
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            }
+            throw new Error('Network response was not ok.');
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `${reportType}_${group}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+            alert('Failed to download report.');
+        });
+    } else {
+        alert('Please select a group and date range.');
+    }
+}
+</script>
 {% endblock %}

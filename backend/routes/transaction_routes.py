@@ -151,7 +151,7 @@ def delete_all_transactions():
 
 
 # Get transactions by group and date range
-@transaction_bp.route('/transactions/group/<string:group_name>', methods=['GET'])
+@transaction_bp.route('/transactions/group_summary/<string:group_name>', methods=['GET'])
 def get_transactions_by_group_and_date(group_name):
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -181,4 +181,35 @@ def get_transactions_by_group_and_date(group_name):
         'total_value': total_value
     }), 200
 
+# delete between dates
+@transaction_bp.route('/transactions/delete', methods=['POST'])
+def delete_transactions():
+    try:
+        data = request.json
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
 
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': 'Start date and end date are required'}), 400
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        transactions_to_delete = Transaction.query.filter(
+            Transaction.date.between(start_date, end_date)
+        ).all()
+
+        if not transactions_to_delete:
+            return jsonify({'message': 'No transactions found for the specified date range'}), 404
+
+        for transaction in transactions_to_delete:
+            db.session.delete(transaction)
+
+        db.session.commit()
+        return jsonify({'message': f'{len(transactions_to_delete)} transactions deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to delete transactions: {str(e)}'}), 500

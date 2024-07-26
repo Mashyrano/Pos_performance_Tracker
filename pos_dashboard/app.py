@@ -146,7 +146,7 @@ def transactions():
             start_date = request.form['start_date']
             end_date = request.form['end_date']
 
-            response = requests.get(f'{BACKEND_URL}/transactions/group/{group}', params={
+            response = requests.get(f'{BACKEND_URL}/transactions/group_summary/{group}', params={
                 'start_date': start_date,
                 'end_date': end_date
             })
@@ -165,10 +165,11 @@ def transactions():
 
 ################# Reports ##########################
 #reports
-@app.route('/')
+@app.route('/reports', methods=['GET'])
 def reports():
-    return render_template('reports.html')
-#
+    groups_response = requests.get(f'{BACKEND_URL}/clients/groups')
+    groups = groups_response.json().get('groups', [])
+    return render_template('reports.html', groups=groups)
 
 
 if __name__ == '__main__':
