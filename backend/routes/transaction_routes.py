@@ -152,34 +152,58 @@ def delete_all_transactions():
 
 # Get transactions by group and date range
 @transaction_bp.route('/transactions/group_summary/<string:group_name>', methods=['GET'])
-def get_transactions_by_group_and_date(group_name):
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-
-    if not start_date or not end_date:
-        return jsonify({'error': 'Start date and end date are required'}), 400
-
+def get_group_transactions_dates(group_name):
     try:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    except ValueError:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
 
-    clients = Client.query.filter_by(group=group_name).all()
-    terminal_ids = [client.terminal_id for client in clients]
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': 'Start date and end date are required'}), 400
 
-    transactions = Transaction.query.filter(
-        Transaction.terminal_id.in_(terminal_ids),
-        Transaction.date.between(start_date, end_date)
-    ).all()
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
 
-    total_volume = sum(transaction.volume for transaction in transactions)
-    total_value = sum(transaction.value for transaction in transactions)
+        clients = Client.query.filter_by(group=group_name).all()
 
-    return jsonify({
-        'total_volume': total_volume,
-        'total_value': total_value
-    }), 200
+        if not clients:
+            return jsonify({'error': 'No clients found for this group'}), 404
+
+        terminal_ids = [client.terminal_id for client in clients]
+
+        transactions = Transaction.query.filter(
+            Transaction.terminal_id.in_(terminal_ids),
+            Transaction.date.between(start_date, end_date)
+        ).all()
+
+        if not transactions:
+            return jsonify({'error': 'No transactions found for this group'}), 404
+
+        total_value_zig = 0
+        total_volume_zig = 0
+        total_value_usd = 0
+        total_volume_usd = 0
+
+        for transaction in transactions:
+            if transaction.terminal_id.startswith(('SBM', 'ZPZ', 'SQL')):
+                total_value_zig += transaction.value
+                total_volume_zig += transaction.volume
+            elif transaction.terminal_id.startswith(('FCM', 'FCZP', 'FCQ')):
+                total_value_usd += transaction.value
+                total_volume_usd += transaction.volume
+
+        return jsonify({
+            'total_value_zig': total_value_zig,
+            'total_volume_zig': total_volume_zig,
+            'total_value_usd': total_value_usd,
+            'total_volume_usd': total_volume_usd
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch transactions: {str(e)}'}), 50
+
 
 # delete between dates
 @transaction_bp.route('/transactions/delete', methods=['POST'])

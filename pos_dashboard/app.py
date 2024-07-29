@@ -5,6 +5,8 @@ app = Flask(__name__)
 
 BACKEND_URL = 'http://localhost:5000'  # URL of the backend server
 
+############################ Dashboard #############################
+
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
@@ -123,15 +125,8 @@ def delete_group(group_name):
 @app.route('/transactions', methods=['GET', 'POST'])
 def transactions():
     message = ''
-    group = ''
-    start_date = ''
-    end_date = ''
-    total_volume = 0
-    total_value = 0
-
     if request.method == 'POST':
         if 'file' in request.files:
-            # Handle file upload
             file = request.files['file']
             if file:
                 files = {'file': (file.filename, file.stream, file.mimetype)}
@@ -141,7 +136,6 @@ def transactions():
                 else:
                     message = response.json().get('error', 'Failed to upload transactions')
         else:
-            # Handle date range and group filtering
             group = request.form['group']
             start_date = request.form['start_date']
             end_date = request.form['end_date']
@@ -153,15 +147,28 @@ def transactions():
 
             if response.status_code == 200:
                 data = response.json()
-                total_volume = data.get('total_volume', 0)
-                total_value = data.get('total_value', 0)
+                total_value_zig = data.get('total_value_zig', 0)
+                total_volume_zig = data.get('total_volume_zig', 0)
+                total_value_usd = data.get('total_value_usd', 0)
+                total_volume_usd = data.get('total_volume_usd', 0)
             else:
-                message = response.json().get('error', 'Failed to fetch transactions')
+                total_value_zig = 0
+                total_volume_zig = 0
+                total_value_usd = 0
+                total_volume_usd = 0
+    else:
+        group = ''
+        start_date = ''
+        end_date = ''
+        total_value_zig = 0
+        total_volume_zig = 0
+        total_value_usd = 0
+        total_volume_usd = 0
 
     groups_response = requests.get(f'{BACKEND_URL}/clients/groups')
     groups = groups_response.json().get('groups', [])
 
-    return render_template('transactions.html', group=group, start_date=start_date, end_date=end_date, total_volume=total_volume, total_value=total_value, groups=groups, message=message)
+    return render_template('transactions.html', group=group, start_date=start_date, end_date=end_date, total_value_zig=total_value_zig, total_volume_zig=total_volume_zig, total_value_usd=total_value_usd, total_volume_usd=total_volume_usd, groups=groups, message=message)
 
 ################# Reports ##########################
 #reports

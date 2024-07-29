@@ -22,8 +22,12 @@
 </form>
 {% if group and start_date and end_date %}
 <h2>Results for Group: {{ group }} from {{ start_date }} to {{ end_date }}</h2>
-<p>Total Volume: {{ total_volume }}</p>
-<p>Total Value: {{ total_value }}</p>
+<h3>ZiG Currency</h3>
+<p>Total Volume: {{ total_volume_zig }}</p>
+<p>Total Value: {{ total_value_zig }}</p>
+<h3>USD Currency</h3>
+<p>Total Volume: {{ total_volume_usd }}</p>
+<p>Total Value: {{ total_value_usd }}</p>
 {% endif %}
 
 <h2>Upload Transactions</h2>
