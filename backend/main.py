@@ -12,4 +12,4 @@ app.register_blueprint(dash_routes_bp)
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, port=5002)  # Change port if necessary

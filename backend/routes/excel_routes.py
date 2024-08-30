@@ -133,6 +133,7 @@ def calculate_daily_summary(group_name):
     except Exception as e:
         print(f'Error: {str(e)}')  # Log the error
         return jsonify({'error': f'Failed to calculate daily summary: {str(e)}'}), 500
+        
 ############################## Cumulative trans ####################################
 
 @excel_routes_bp.route('/excel/cumulative/<string:group_name>', methods=['GET'])

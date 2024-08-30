@@ -12,13 +12,6 @@ def add_client():
 
     data = request.json
 
-    # Check if terminal_id already exists in the database
-    existing_client = Client.query.filter_by(terminal_id=data['terminal_id']).first()
-    if existing_client:
-        error_messages = ''
-        error_messages.append(f"Client with terminal ID '{data['terminal_id']}' already exists, skipped.")
-        return jsonify({'message': error_messages}), 500
-
     new_client = Client(
         terminal_id=data['terminal_id'],
         physical_tid=data['physical_tid'],
@@ -89,15 +82,14 @@ def upload_clients():
         df = pd.read_excel(stream)
 
         success_count = 0
-        error_messages = []
+        skipped_terminal_ids = []
 
         for _, row in df.iterrows():
             terminal_id = row['Terminal Id']
-            
             # Check if terminal_id already exists in the database
             existing_client = Client.query.filter_by(terminal_id=terminal_id).first()
             if existing_client:
-                error_messages.append(f"Client with terminal ID '{terminal_id}' already exists, skipping.")
+                skipped_terminal_ids.append(terminal_id)
                 continue
             
             # Create a new client object and add it to the session
@@ -116,13 +108,17 @@ def upload_clients():
         try:
             db.session.commit()
             message = f'{success_count} clients added successfully!'
-            if error_messages:
-                message += ' Some clients were skipped due to existing terminal IDs.'
-            return jsonify({'message': message}), 201
+            response_data = {'message': message, 'skipped_terminal_ids': skipped_terminal_ids}
+            
+            if skipped_terminal_ids:
+                response_data['skipped_message'] = f'Some clients were skipped due to existing terminal IDs: {", ".join(skipped_terminal_ids)}.'
+            
+            return jsonify(response_data), 201
         
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': f'Failed to add clients: {str(e)}'}), 500
+
 
     return jsonify({'error': 'Invalid file format or empty file'}), 400
 
